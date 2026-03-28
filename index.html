@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MC Texture Pack Maker</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root {
+    --dirt: #8B6340;
+    --grass: #5D8A3C;
+    --grass-light: #7CB84A;
+    --stone: #1a1a1a;
+    --stone-mid: #2a2a2a;
+    --stone-light: #3a3a3a;
+    --ore-gold: #F5C518;
+    --ore-diamond: #5DEEF5;
+    --ore-red: #E74C3C;
+    --text: #F0EDE8;
+    --text-dim: #A89880;
+    --panel: rgba(26,26,26,0.9);
+    --border: #3a3a3a;
+    --glow-green: rgba(93,138,60,0.4);
+    --glow-diamond: rgba(93,238,245,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d0d0d;
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* PIXEL GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.02) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(255,255,255,0.02) 32px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* FLOATING PARTICLES */
+  .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .particle {
+    position: absolute;
+    width: 4px; height: 4px;
+    background: var(--grass-light);
+    opacity: 0;
+    animation: float-up linear infinite;
+    image-rendering: pixelated;
+  }
+  @keyframes float-up {
+    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(-20px) rotate(360deg); opacity: 0; }
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 48px 24px 32px;
+    border-bottom: 2px solid var(--stone-light);
+    background: linear-gradient(180deg, rgba(93,138,60,0.12) 0%, transparent 100%);
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .logo-icon {
+    width: 52px; height: 52px;
+    image-rendering: pixelated;
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    grid-template-rows: repeat(4,1fr);
+    gap: 2px;
+    padding: 4px;
+    background: #2a2a2a;
+    border: 2px solid var(--grass);
+    box-shadow: 0 0 16px var(--glow-green);
+    animation: icon-glow 3s ease-in-out infinite;
+  }
+
+  @keyframes icon-glow {
+    0%, 100% { box-shadow: 0 0 16px var(--glow-green); }
+    50% { box-shadow: 0 0 32px rgba(93,138,60,0.7); }
+  }
+
+  .logo-icon span {
+    display: block;
+    border-radius: 1px;
+  }
+
+  h1 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(14px, 3vw, 22px);
+    color: var(--grass-light);
+    text-shadow: 3px 3px 0 rgba(0,0,0,0.8), 0 0 20px var(--glow-green);
+    letter-spacing: 2px;
+    line-height: 1.4;
+  }
+
+  .subtitle {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    position: relative;
+    z-index: 10;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 16px;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  /* PANELS */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+  }
+
+  .panel-header {
+    background: var(--stone-mid);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-header h2 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--ore-gold);
+    letter-spacing: 1px;
+  }
+
+  .panel-icon {
+    width: 20px; height: 20px;
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .panel-icon span { display: block; border-radius: 1px; }
+
+  .panel-body { padding: 16px; }
+
+  /* FORM INPUTS */
+  label {
+    display: block;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    margin-bottom: 14px;
+  }
+
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--grass);
+    box-shadow: 0 0 0 2px var(--glow-green);
+  }
+
+  select option { background: #111; }
+
+  textarea { resize: vertical; min-height: 60px; }
+
+  /* CATEGORY TABS */
+  .cat-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .cat-tab {
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    padding: 5px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: #111;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+  }
+
+  .cat-tab:hover { border-color: var(--grass); color: var(--text); }
+  .cat-tab.active {
+    background: var(--grass);
+    border-color: var(--grass-light);
+    color: #fff;
+    font-weight: bold;
+  }
+
+  /* TEXTURE SEARCH */
+  .search-box {
+    position: relative;
+    margin-bottom: 10px;
+  }
+  .search-box input {
+    padding-left: 32px;
+    margin-bottom: 0;
+  }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* TEXTURE LIST */
+  .texture-list {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: #0a0a0a;
+    margin-bottom: 12px;
+  }
+
+  .texture-list::-webkit-scrollbar { width: 6px; }
+  .texture-list::-webkit-scrollbar-track { background: #0a0a0a; }
+  .texture-list::-webkit-scrollbar-thumb { background: var(--stone-light); border-radius: 3px; }
+
+  .texture-item {
+    padding: 9px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-dim);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: all 0.1s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .texture-item:hover { background: rgba(93,138,60,0.1); color: var(--text); }
+  .texture-item.selected { background: rgba(93,138,60,0.2); color: var(--grass-light); border-left: 2px solid var(--grass); }
+
+  .texture-path {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: monospace;
+    opacity: 0.6;
+  }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #0a0a0a;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--grass);
+    background: rgba(93,138,60,0.05);
+    box-shadow: 0 0 12px var(--glow-green) inset;
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  .upload-preview {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .upload-preview img {
+    width: 64px; height: 64px;
+    image-rendering: pixelated;
+    border: 2px solid var(--grass);
+    border-radius: 3px;
+    background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 0 0 / 8px 8px;
+    box-shadow: 0 0 12px var(--glow-green);
+  }
+
+  .upload-hint {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: var(--text-dim);
+  }
+  .upload-hint strong { color: var(--grass-light); display: block; margin-bottom: 4px; font-size: 20px; }
+
+  /* BUTTONS */
+  .btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 12px 18px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-add {
+    background: var(--grass);
+    color: #fff;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 0 #3a6a1e;
+  }
+  .btn-add:hover { background: var(--grass-light); transform: translateY(-1px); box-shadow: 0 5px 0 #3a6a1e; }
+  .btn-add:active { transform: translateY(2px); box-shadow: 0 2px 0 #3a6a1e; }
+  .btn-add:disabled { background: #333; color: #666; box-shadow: none; cursor: not-allowed; transform: none; }
+
+  .btn-download {
+    background: var(--ore-gold);
+    color: #111;
+    width: 100%;
+    justify-content: center;
+    font-size: 10px;
+    padding: 14px;
+    box-shadow: 0 4px 0 #a08010;
+    margin-top: 4px;
+  }
+  .btn-download:hover { background: #FFD740; transform: translateY(-1px); box-shadow: 0 5px 0 #a08010; }
+  .btn-download:active { transform: translateY(2px); box-shadow: 0 2px 0 #a08010; }
+  .btn-download:disabled { background: #444; color: #666; box-shadow: none; cursor: not-allowed; transform: none; }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--ore-red);
+    border: 1px solid var(--ore-red);
+    font-size: 8px;
+    padding: 6px 10px;
+  }
+  .btn-danger:hover { background: rgba(231,76,60,0.15); }
+
+  /* TEXTURE SLOTS (right panel) */
+  .slots-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .slots-count {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: var(--ore-gold);
+  }
+
+  .slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    min-height: 120px;
+  }
+
+  .slot-card {
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 8px;
+    text-align: center;
+    position: relative;
+    transition: all 0.2s;
+    animation: slot-in 0.3s ease;
+  }
+
+  @keyframes slot-in {
+    from { opacity: 0; transform: scale(0.8) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .slot-card:hover { border-color: var(--grass); box-shadow: 0 0 8px var(--glow-green); }
+
+  .slot-img {
+    width: 48px; height: 48px;
+    image-rendering: pixelated;
+    display: block;
+    margin: 0 auto 6px;
+    background: repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 0 0 / 8px 8px;
+    border-radius: 2px;
+  }
+
+  .slot-name {
+    font-size: 10px;
+    color: var(--text);
+    word-break: break-word;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+
+  .slot-path {
+    font-size: 9px;
+    color: var(--text-dim);
+    font-family: monospace;
+    word-break: break-all;
+    opacity: 0.6;
+  }
+
+  .slot-remove {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 16px; height: 16px;
+    background: var(--ore-red);
+    border: none;
+    border-radius: 2px;
+    color: #fff;
+    font-size: 10px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    line-height: 1;
+  }
+  .slot-card:hover .slot-remove { opacity: 1; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    opacity: 0.5;
+  }
+  .empty-state .empty-icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  /* STATUS BAR */
+  .status {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--stone-mid);
+    border: 1px solid var(--grass);
+    border-radius: 4px;
+    padding: 10px 20px;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: var(--grass-light);
+    box-shadow: 0 0 20px var(--glow-green);
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .status.show { opacity: 1; }
+  .status.error { border-color: var(--ore-red); color: var(--ore-red); box-shadow: 0 0 20px rgba(231,76,60,0.4); }
+
+  /* PACK CONFIG */
+  .pack-thumb-upload {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .thumb-preview {
+    width: 56px; height: 56px;
+    background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 0 0 / 8px 8px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .thumb-preview:hover { border-color: var(--grass); }
+  .thumb-preview img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+  .thumb-preview input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .thumb-label {
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: var(--text-dim);
+  }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 14px 0;
+  }
+
+  /* SECTION BADGE */
+  .section-badge {
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    background: var(--stone-mid);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 2px 8px;
+    color: var(--ore-diamond);
+    letter-spacing: 0.5px;
+  }
+
+  /* SELECTED TEXTURE PREVIEW */
+  .selected-preview {
+    background: #0a0a0a;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+  }
+  .selected-preview.visible { display: flex; }
+  .selected-preview .preview-box {
+    width: 32px; height: 32px;
+    background: repeating-conic-gradient(#1a1a1a 0% 25%, #2a2a2a 0% 50%) 0 0 / 8px 8px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .selected-preview .preview-info { flex: 1; min-width: 0; }
+  .selected-preview .preview-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .selected-preview .preview-path { font-size: 11px; color: var(--text-dim); font-family: monospace; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0a0a; }
+  ::-webkit-scrollbar-thumb { background: var(--stone-light); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon" id="logoIcon"></div>
+    <h1>MC TEXTURE<br>PACK MAKER</h1>
+  </div>
+  <p class="subtitle">▸ Crea tu resource pack para Bedrock Edition ▸</p>
+</header>
+
+<main>
+  <!-- LEFT PANEL: CONFIG + TEXTURE SELECTOR -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- PACK CONFIG -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon" id="packIcon"></div>
+        <h2>CONFIGURAR PACK</h2>
+      </div>
+      <div class="panel-body">
+        <div class="pack-thumb-upload">
+          <div class="thumb-preview" id="thumbPreview" title="Click para añadir ícono del pack">
+            <img id="thumbImg" src="" alt="" style="display:none">
+            <span id="thumbPlaceholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:0.4;">🎨</span>
+            <input type="file" id="thumbInput" accept="image/png,image/jpeg,image/webp">
+          </div>
+          <div>
+            <div class="thumb-label">Ícono del pack<br><span style="font-size:13px;opacity:0.6">(click para subir)</span></div>
+          </div>
+        </div>
+
+        <label>Nombre del pack</label>
+        <input type="text" id="packName" placeholder="Mi Super Pack" value="Mi Texture Pack">
+
+        <label>Descripción</label>
+        <textarea id="packDesc" placeholder="Descripción del pack...">Custom Texture Pack</textarea>
+
+        <label>Versión min. de Minecraft</label>
+        <select id="packVersion">
+          <option value="1.20.0">1.20.x (Trails & Tales)</option>
+          <option value="1.21.0" selected>1.21.x (Tricky Trials)</option>
+          <option value="1.19.0">1.19.x (The Wild)</option>
+          <option value="1.18.0">1.18.x (Caves & Cliffs 2)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TEXTURE SELECTOR -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon" id="texIcon"></div>
+        <h2>AÑADIR TEXTURA</h2>
+      </div>
+      <div class="panel-body">
+
+        <label>Categoría</label>
+        <div class="cat-tabs" id="catTabs"></div>
+
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="texSearch" placeholder="Buscar textura...">
+        </div>
+
+        <div class="texture-list" id="textureList"></div>
+
+        <div class="selected-preview" id="selectedPreview">
+          <div class="preview-box" id="previewEmoji"></div>
+          <div class="preview-info">
+            <div class="preview-name" id="previewName">—</div>
+            <div class="preview-path" id="previewPath">—</div>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <label>Tu textura (PNG)</label>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
+          <div class="upload-hint" id="uploadHint">
+            <strong>⬆ Arrastra o haz clic</strong>
+            Sube tu textura PNG
+          </div>
+          <div class="upload-preview" id="uploadPreview" style="display:none">
+            <img id="previewImg" src="" alt="preview">
+            <div>
+              <div style="font-family:'VT323',monospace;font-size:18px;color:var(--grass-light)">Textura lista ✓</div>
+              <div id="imgSize" style="font-size:12px;color:var(--text-dim)"></div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-add" id="addBtn" disabled>+ Añadir al pack</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: PACK CONTENTS + DOWNLOAD -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon" id="packContentsIcon"></div>
+        <h2>CONTENIDO DEL PACK</h2>
+        <div style="margin-left:auto">
+          <span class="slots-count" id="slotsCount">0 texturas</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="slots-header">
+          <span style="font-family:'VT323',monospace;font-size:16px;color:var(--text-dim)">Texturas añadidas:</span>
+          <button class="btn btn-danger" id="clearBtn" style="display:none" onclick="clearAll()">✕ Limpiar todo</button>
+        </div>
+        <div class="slots-grid" id="slotsGrid">
+          <div class="empty-state">
+            <span class="empty-icon">📦</span>
+            Añade texturas para empezar
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOWNLOAD -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon" id="dlIcon"></div>
+        <h2>DESCARGAR</h2>
+      </div>
+      <div class="panel-body">
+        <div style="font-family:'VT323',monospace;font-size:17px;color:var(--text-dim);margin-bottom:14px;line-height:1.5">
+          Genera tu <span style="color:var(--ore-gold)">.mcpack</span> listo para importar en<br>Minecraft Bedrock Edition.
+        </div>
+        <div style="background:#0a0a0a;border:1px solid var(--border);border-radius:3px;padding:12px;margin-bottom:14px;font-family:monospace;font-size:12px;color:var(--text-dim);line-height:1.8" id="packPreview">
+          📁 <span style="color:var(--ore-gold)" id="dlPackName">Mi Texture Pack</span>.mcpack<br>
+          &nbsp;&nbsp;📄 manifest.json<br>
+          &nbsp;&nbsp;🖼 pack_icon.png<br>
+          &nbsp;&nbsp;📁 textures/<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span id="dlFileList" style="color:var(--text-dim)">(sin texturas aún)</span>
+        </div>
+        <button class="btn btn-download" id="downloadBtn" disabled onclick="generatePack()">
+          ⬇ GENERAR Y DESCARGAR .MCPACK
+        </button>
+        <div style="font-family:'VT323',monospace;font-size:14px;color:var(--text-dim);text-align:center;margin-top:8px">
+          Doble click en el .mcpack para importar
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="status" id="status"></div>
+
+<script>
+// ──────────────────────────────────────────────
+// TEXTURE DATABASE
+// ──────────────────────────────────────────────
+const TEXTURES = {
+  "⚔ Items": [
+    { name: "Diamante", path: "textures/items/diamond", emoji: "💎" },
+    { name: "Espada de Diamante", path: "textures/items/diamond_sword", emoji: "⚔" },
+    { name: "Pico de Diamante", path: "textures/items/diamond_pickaxe", emoji: "⛏" },
+    { name: "Hacha de Diamante", path: "textures/items/diamond_axe", emoji: "🪓" },
+    { name: "Pala de Diamante", path: "textures/items/diamond_shovel", emoji: "⚒" },
+    { name: "Arco de Diamante", path: "textures/items/diamond_hoe", emoji: "🌾" },
+    { name: "Espada de Hierro", path: "textures/items/iron_sword", emoji: "⚔" },
+    { name: "Pico de Hierro", path: "textures/items/iron_pickaxe", emoji: "⛏" },
+    { name: "Hacha de Hierro", path: "textures/items/iron_axe", emoji: "🪓" },
+    { name: "Espada de Piedra", path: "textures/items/stone_sword", emoji: "⚔" },
+    { name: "Espada de Oro", path: "textures/items/gold_sword", emoji: "⚔" },
+    { name: "Espada de Madera", path: "textures/items/wood_sword", emoji: "⚔" },
+    { name: "Espada de Netherite", path: "textures/items/netherite_sword", emoji: "⚔" },
+    { name: "Pico de Netherite", path: "textures/items/netherite_pickaxe", emoji: "⛏" },
+    { name: "Arco", path: "textures/items/bow_standby", emoji: "🏹" },
+    { name: "Ballesta", path: "textures/items/crossbow_standby", emoji: "🏹" },
+    { name: "Tridente", path: "textures/items/trident", emoji: "🔱" },
+    { name: "Flecha", path: "textures/items/arrow", emoji: "➡" },
+    { name: "Anzuelo", path: "textures/items/fishing_rod_uncast", emoji: "🎣" },
+    { name: "Tijeras", path: "textures/items/shears", emoji: "✂" },
+    { name: "Encendedor", path: "textures/items/flint_and_steel", emoji: "🔥" },
+    { name: "Brújula", path: "textures/items/compass_item", emoji: "🧭" },
+    { name: "Reloj", path: "textures/items/clock_item", emoji: "⏱" },
+    { name: "Mapa", path: "textures/items/map", emoji: "🗺" },
+    { name: "Libro y Pluma", path: "textures/items/book_writable", emoji: "📖" },
+    { name: "Libro Encantado", path: "textures/items/book_enchanted", emoji: "📚" },
+    { name: "Pergamino", path: "textures/items/paper", emoji: "📄" },
+    { name: "Hueso", path: "textures/items/bone", emoji: "🦴" },
+    { name: "Llave Llave", path: "textures/items/string", emoji: "🧵" },
+    { name: "Pluma", path: "textures/items/feather", emoji: "🪶" },
+  ],
+  "🛡 Armadura": [
+    { name: "Casco de Diamante", path: "textures/items/diamond_helmet", emoji: "⛑" },
+    { name: "Peto de Diamante", path: "textures/items/diamond_chestplate", emoji: "🦺" },
+    { name: "Pantalones de Diamante", path: "textures/items/diamond_leggings", emoji: "👖" },
+    { name: "Botas de Diamante", path: "textures/items/diamond_boots", emoji: "👢" },
+    { name: "Casco de Hierro", path: "textures/items/iron_helmet", emoji: "⛑" },
+    { name: "Peto de Hierro", path: "textures/items/iron_chestplate", emoji: "🦺" },
+    { name: "Pantalones de Hierro", path: "textures/items/iron_leggings", emoji: "👖" },
+    { name: "Botas de Hierro", path: "textures/items/iron_boots", emoji: "👢" },
+    { name: "Casco de Netherite", path: "textures/items/netherite_helmet", emoji: "⛑" },
+    { name: "Peto de Netherite", path: "textures/items/netherite_chestplate", emoji: "🦺" },
+    { name: "Casco de Cuero", path: "textures/items/leather_helmet", emoji: "⛑" },
+    { name: "Peto de Cuero", path: "textures/items/leather_chestplate", emoji: "🦺" },
+    { name: "Escudo", path: "textures/items/shield", emoji: "🛡" },
+    { name: "Elytra", path: "textures/items/elytra", emoji: "🪂" },
+    { name: "Pectoral de Tortuga", path: "textures/items/turtle_shell_piece", emoji: "🐢" },
+  ],
+  "🧱 Bloques": [
+    { name: "Tierra (tope)", path: "textures/blocks/grass_top", emoji: "🟩" },
+    { name: "Tierra (lado)", path: "textures/blocks/grass_side", emoji: "🟫" },
+    { name: "Suciedad", path: "textures/blocks/dirt", emoji: "🟫" },
+    { name: "Piedra", path: "textures/blocks/stone", emoji: "⬜" },
+    { name: "Granito", path: "textures/blocks/stone_granite", emoji: "🔶" },
+    { name: "Diorita", path: "textures/blocks/stone_diorite", emoji: "⬜" },
+    { name: "Andesita", path: "textures/blocks/stone_andesite", emoji: "🩶" },
+    { name: "Arena", path: "textures/blocks/sand", emoji: "🏜" },
+    { name: "Grava", path: "textures/blocks/gravel", emoji: "⚫" },
+    { name: "Madera Roble (tope)", path: "textures/blocks/log_oak_top", emoji: "🟤" },
+    { name: "Madera Roble (lado)", path: "textures/blocks/log_oak", emoji: "🟤" },
+    { name: "Tablas de Roble", path: "textures/blocks/planks_oak", emoji: "🟫" },
+    { name: "Tablas de Abeto", path: "textures/blocks/planks_spruce", emoji: "🟫" },
+    { name: "Tablas de Abedul", path: "textures/blocks/planks_birch", emoji: "🟡" },
+    { name: "Tablas de Jungla", path: "textures/blocks/planks_jungle", emoji: "🟤" },
+    { name: "Tablas de Acacia", path: "textures/blocks/planks_acacia", emoji: "🟠" },
+    { name: "Tablas de Roble Oscuro", path: "textures/blocks/planks_big_oak", emoji: "⬛" },
+    { name: "Piedra Lisa", path: "textures/blocks/smooth_stone", emoji: "⬜" },
+    { name: "Piedra Muscosa", path: "textures/blocks/cobblestone_mossy", emoji: "🟢" },
+    { name: "Adoquín", path: "textures/blocks/cobblestone", emoji: "⬜" },
+    { name: "Ladrillo", path: "textures/blocks/brick", emoji: "🔴" },
+    { name: "Ladrillo de Piedra", path: "textures/blocks/stonebrick", emoji: "⬜" },
+    { name: "Obsidiana", path: "textures/blocks/obsidian", emoji: "⬛" },
+    { name: "Bedrock", path: "textures/blocks/bedrock", emoji: "🖤" },
+    { name: "Mineral de Hierro", path: "textures/blocks/iron_ore", emoji: "🔩" },
+    { name: "Mineral de Oro", path: "textures/blocks/gold_ore", emoji: "🟡" },
+    { name: "Mineral de Diamante", path: "textures/blocks/diamond_ore", emoji: "💎" },
+    { name: "Mineral de Carbón", path: "textures/blocks/coal_ore", emoji: "⚫" },
+    { name: "Mineral de Esmeralda", path: "textures/blocks/emerald_ore", emoji: "💚" },
+    { name: "Mineral de Lapislázuli", path: "textures/blocks/lapis_ore", emoji: "🔵" },
+    { name: "Mineral de Redstone", path: "textures/blocks/redstone_ore", emoji: "🔴" },
+    { name: "Mineral de Cobre", path: "textures/blocks/copper_ore", emoji: "🟠" },
+    { name: "Bloque de Hierro", path: "textures/blocks/iron_block", emoji: "⬜" },
+    { name: "Bloque de Oro", path: "textures/blocks/gold_block", emoji: "🟡" },
+    { name: "Bloque de Diamante", path: "textures/blocks/diamond_block", emoji: "💎" },
+    { name: "Bloque de Netherite", path: "textures/blocks/netherite_block", emoji: "⬛" },
+    { name: "Bloque de Esmeralda", path: "textures/blocks/emerald_block", emoji: "💚" },
+    { name: "Bloque de Redstone", path: "textures/blocks/redstone_block", emoji: "🔴" },
+    { name: "TNT (lado)", path: "textures/blocks/tnt_side", emoji: "💣" },
+    { name: "TNT (tope)", path: "textures/blocks/tnt_top", emoji: "💣" },
+    { name: "Caja de Madera", path: "textures/blocks/chest_front", emoji: "📦" },
+    { name: "Horno (frente)", path: "textures/blocks/furnace_front_off", emoji: "🔥" },
+    { name: "Mesa de Trabajo", path: "textures/blocks/crafting_table_front", emoji: "🔨" },
+    { name: "Hoja de Roble", path: "textures/blocks/leaves_oak", emoji: "🍃" },
+    { name: "Hoja de Abeto", path: "textures/blocks/leaves_spruce", emoji: "🌲" },
+    { name: "Cactus", path: "textures/blocks/cactus_side", emoji: "🌵" },
+    { name: "Nieve", path: "textures/blocks/snow", emoji: "❄" },
+    { name: "Hielo", path: "textures/blocks/ice", emoji: "🧊" },
+    { name: "Vidrio", path: "textures/blocks/glass", emoji: "🪟" },
+    { name: "Netherrack", path: "textures/blocks/netherrack", emoji: "🔴" },
+    { name: "Piedra del Alma", path: "textures/blocks/soul_sand", emoji: "😱" },
+    { name: "Glowstone", path: "textures/blocks/glowstone", emoji: "💛" },
+    { name: "Portal del Nether", path: "textures/blocks/portal", emoji: "🌀" },
+    { name: "End Stone", path: "textures/blocks/end_stone", emoji: "🟡" },
+    { name: "Purpur", path: "textures/blocks/purpur_block", emoji: "🟣" },
+    { name: "Deepslate", path: "textures/blocks/deepslate_top", emoji: "⬛" },
+    { name: "Tuff", path: "textures/blocks/tuff", emoji: "🟢" },
+    { name: "Calcita", path: "textures/blocks/calcite", emoji: "⬜" },
+  ],
+  "🍗 Comida": [
+    { name: "Manzana", path: "textures/items/apple", emoji: "🍎" },
+    { name: "Manzana Dorada", path: "textures/items/apple_golden", emoji: "🍎" },
+    { name: "Pan", path: "textures/items/bread", emoji: "🍞" },
+    { name: "Zanahoria", path: "textures/items/carrot", emoji: "🥕" },
+    { name: "Zanahoria Dorada", path: "textures/items/carrot_golden", emoji: "🥕" },
+    { name: "Papa", path: "textures/items/potato", emoji: "🥔" },
+    { name: "Papa Horneada", path: "textures/items/potato_baked", emoji: "🥔" },
+    { name: "Carne Cruda", path: "textures/items/beef_raw", emoji: "🥩" },
+    { name: "Bistec", path: "textures/items/beef_cooked", emoji: "🥩" },
+    { name: "Pollo Crudo", path: "textures/items/chicken_raw", emoji: "🍗" },
+    { name: "Pollo Cocinado", path: "textures/items/chicken_cooked", emoji: "🍗" },
+    { name: "Sandía", path: "textures/items/melon", emoji: "🍉" },
+    { name: "Torta", path: "textures/blocks/cake_top", emoji: "🎂" },
+    { name: "Galleta", path: "textures/items/cookie", emoji: "🍪" },
+    { name: "Pastel de Calabaza", path: "textures/items/pumpkin_pie", emoji: "🥧" },
+    { name: "Hongos Guisados", path: "textures/items/mushroom_stew", emoji: "🍄" },
+    { name: "Botella de Poción", path: "textures/items/potion_bottle_drink", emoji: "⚗" },
+  ],
+  "🌿 Naturaleza": [
+    { name: "Semilla de Trigo", path: "textures/items/seeds_wheat", emoji: "🌾" },
+    { name: "Trigo", path: "textures/items/wheat", emoji: "🌾" },
+    { name: "Rosas Rojas", path: "textures/blocks/flower_rose", emoji: "🌹" },
+    { name: "Diente de León", path: "textures/blocks/flower_dandelion", emoji: "🌼" },
+    { name: "Hongo Rojo", path: "textures/blocks/mushroom_red", emoji: "🍄" },
+    { name: "Hongo Café", path: "textures/blocks/mushroom_brown", emoji: "🍄" },
+    { name: "Lirio de Agua", path: "textures/blocks/waterlily", emoji: "🌺" },
+    { name: "Bambú (tallo)", path: "textures/blocks/bamboo_stem", emoji: "🎋" },
+    { name: "Cactus (lado)", path: "textures/blocks/cactus_side", emoji: "🌵" },
+    { name: "Caña de Azúcar", path: "textures/blocks/reeds", emoji: "🌿" },
+  ],
+  "🔴 Redstone": [
+    { name: "Redstone", path: "textures/items/redstone_dust", emoji: "🔴" },
+    { name: "Pistón", path: "textures/blocks/piston_top_normal", emoji: "⬆" },
+    { name: "Palanca", path: "textures/blocks/lever", emoji: "🔧" },
+    { name: "Botón de Piedra", path: "textures/blocks/stone_button", emoji: "🔘" },
+    { name: "Placa Presión Madera", path: "textures/blocks/planks_oak", emoji: "⬜" },
+    { name: "Repetidor", path: "textures/items/repeater", emoji: "➡" },
+    { name: "Comparador", path: "textures/items/comparator", emoji: "🔁" },
+    { name: "Relé (Rail)", path: "textures/blocks/rail_normal", emoji: "🚂" },
+    { name: "Rail Potenciado", path: "textures/blocks/rail_golden", emoji: "🟡" },
+  ],
+  "🪄 Especiales": [
+    { name: "Ojo de Ender", path: "textures/items/ender_eye", emoji: "👁" },
+    { name: "Perla de Ender", path: "textures/items/ender_pearl", emoji: "🟣" },
+    { name: "Blaze Rod", path: "textures/items/blaze_rod", emoji: "🔥" },
+    { name: "Blaze Powder", path: "textures/items/blaze_powder", emoji: "✨" },
+    { name: "Huevo de Dragón", path: "textures/blocks/dragon_egg", emoji: "🥚" },
+    { name: "Estrella del Nether", path: "textures/items/nether_star", emoji: "⭐" },
+    { name: "Bola de Magma", path: "textures/items/magma_cream", emoji: "🔥" },
+    { name: "Corazón de Mar", path: "textures/items/heart_of_the_sea", emoji: "💙" },
+    { name: "Esponja", path: "textures/blocks/sponge", emoji: "🧽" },
+    { name: "Slimeball", path: "textures/items/slimeball", emoji: "🟢" },
+    { name: "Cuarzo del Nether", path: "textures/items/quartz", emoji: "💎" },
+    { name: "Lágrima de Ghast", path: "textures/items/ghast_tear", emoji: "💧" },
+    { name: "Diente de Wither", path: "textures/items/wither_skeleton_skull", emoji: "💀" },
+    { name: "Estandarte de Pillager", path: "textures/items/banner_pattern_illager", emoji: "🚩" },
+    { name: "Totem of Undying", path: "textures/items/totem", emoji: "🗿" },
+    { name: "Experiencia (botella)", path: "textures/items/exp_bottle", emoji: "⚗" },
+  ],
+};
+
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+let currentCategory = Object.keys(TEXTURES)[0];
+let selectedTexture = null;
+let uploadedFile = null;
+let uploadedDataUrl = null;
+let packTextures = []; // { texture, file, dataUrl }
+
+// ──────────────────────────────────────────────
+// PIXEL ART ICONS
+// ──────────────────────────────────────────────
+const GRASS_COLORS = ['#5D8A3C','#7CB84A','#5D8A3C','#8B6340','#7CB84A','#5D8A3C','#8B6340','#5D8A3C','#8B6340','#8B6340','#5D8A3C','#8B6340','#8B6340','#8B6340','#8B6340','#8B6340'];
+const DIAMOND_COLORS = ['#5DEEF5','#5DEEF5','transparent','transparent','#5DEEF5','#5DEEF5','#5DEEF5','transparent','transparent','#5DEEF5','#5DEEF5','#5DEEF5','transparent','transparent','#5DEEF5','#5DEEF5'];
+const PACK_COLORS = ['#F5C518','#F5C518','#F5C518','#F5C518','#F5C518','#1a1a1a','#1a1a1a','#F5C518'];
+const DL_COLORS = ['#F5C518','#1a1a1a','#F5C518','#1a1a1a','#1a1a1a','#F5C518','#1a1a1a','#F5C518'];
+const CHEST_COLORS = ['#8B6340','#8B6340','#8B6340','#8B6340','#5D4430','#F5C518','#5D4430','#5D4430'];
+
+function makePixelIcon(el, colors) {
+  el.innerHTML = '';
+  colors.forEach(c => {
+    const s = document.createElement('span');
+    s.style.background = c === 'transparent' ? 'transparent' : c;
+    el.appendChild(s);
+  });
+}
+
+function initIcons() {
+  makePixelIcon(document.getElementById('logoIcon'), GRASS_COLORS);
+  makePixelIcon(document.getElementById('packIcon'), PACK_COLORS);
+  makePixelIcon(document.getElementById('texIcon'), DIAMOND_COLORS);
+  makePixelIcon(document.getElementById('packContentsIcon'), CHEST_COLORS);
+  makePixelIcon(document.getElementById('dlIcon'), DL_COLORS);
+}
+
+// ──────────────────────────────────────────────
+// PARTICLES
+// ──────────────────────────────────────────────
+function initParticles() {
+  const container = document.getElementById('particles');
+  const colors = ['#5D8A3C','#7CB84A','#8B6340','#5DEEF5','#F5C518'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.animationDuration = (8 + Math.random() * 12) + 's';
+    p.style.animationDelay = (Math.random() * 10) + 's';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width = p.style.height = (2 + Math.floor(Math.random() * 3) * 2) + 'px';
+    container.appendChild(p);
+  }
+}
+
+// ──────────────────────────────────────────────
+// CATEGORY TABS
+// ──────────────────────────────────────────────
+function initCategoryTabs() {
+  const container = document.getElementById('catTabs');
+  Object.keys(TEXTURES).forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-tab' + (cat === currentCategory ? ' active' : '');
+    btn.textContent = cat;
+    btn.onclick = () => selectCategory(cat);
+    container.appendChild(btn);
+  });
+}
+
+function selectCategory(cat) {
+  currentCategory = cat;
+  document.querySelectorAll('.cat-tab').forEach(b => b.classList.toggle('active', b.textContent === cat));
+  selectedTexture = null;
+  document.getElementById('selectedPreview').classList.remove('visible');
+  updateAddButton();
+  renderTextureList();
+}
+
+// ──────────────────────────────────────────────
+// TEXTURE LIST
+// ──────────────────────────────────────────────
+function renderTextureList(filter = '') {
+  const list = document.getElementById('textureList');
+  const items = TEXTURES[currentCategory].filter(t =>
+    !filter || t.name.toLowerCase().includes(filter.toLowerCase()) || t.path.toLowerCase().includes(filter.toLowerCase())
+  );
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-dim);font-family:\'VT323\',monospace;font-size:16px">Sin resultados</div>';
+    return;
+  }
+  items.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'texture-item' + (selectedTexture && selectedTexture.path === t.path ? ' selected' : '');
+    el.innerHTML = `
+      <span>${t.emoji} ${t.name}</span>
+      <span class="texture-path">${t.path.split('/').slice(-1)[0]}</span>
+    `;
+    el.onclick = () => selectTexture(t);
+    list.appendChild(el);
+  });
+}
+
+function selectTexture(t) {
+  selectedTexture = t;
+  renderTextureList(document.getElementById('texSearch').value);
+  const preview = document.getElementById('selectedPreview');
+  preview.classList.add('visible');
+  document.getElementById('previewEmoji').textContent = t.emoji;
+  document.getElementById('previewName').textContent = t.name;
+  document.getElementById('previewPath').textContent = t.path + '.png';
+  updateAddButton();
+}
+
+document.getElementById('texSearch').addEventListener('input', e => renderTextureList(e.target.value));
+
+// ──────────────────────────────────────────────
+// FILE UPLOAD
+// ──────────────────────────────────────────────
+function setupUpload() {
+  const zone = document.getElementById('uploadZone');
+  const input = document.getElementById('fileInput');
+
+  input.addEventListener('change', () => handleFile(input.files[0]));
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+}
+
+function handleFile(file) {
+  if (!file) return;
+  if (!file.type.match(/image\/(png|jpeg|webp)/)) {
+    showStatus('Solo se aceptan imágenes PNG, JPG o WebP', true);
+    return;
+  }
+  uploadedFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    uploadedDataUrl = e.target.result;
+    const img = document.getElementById('previewImg');
+    img.src = uploadedDataUrl;
+    document.getElementById('uploadHint').style.display = 'none';
+    document.getElementById('uploadPreview').style.display = 'flex';
+
+    // Get image dimensions
+    const tempImg = new Image();
+    tempImg.onload = () => {
+      document.getElementById('imgSize').textContent = `${tempImg.width}×${tempImg.height}px · ${(file.size/1024).toFixed(1)}KB`;
+    };
+    tempImg.src = uploadedDataUrl;
+    updateAddButton();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ──────────────────────────────────────────────
+// PACK ICON UPLOAD
+// ──────────────────────────────────────────────
+document.getElementById('thumbInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = document.getElementById('thumbImg');
+    img.src = ev.target.result;
+    img.style.display = 'block';
+    document.getElementById('thumbPlaceholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+});
+
+// ──────────────────────────────────────────────
+// ADD TEXTURE
+// ──────────────────────────────────────────────
+function updateAddButton() {
+  document.getElementById('addBtn').disabled = !(selectedTexture && uploadedFile);
+}
+
+document.getElementById('addBtn').onclick = () => {
+  if (!selectedTexture || !uploadedFile) return;
+
+  // Check duplicate
+  if (packTextures.find(t => t.texture.path === selectedTexture.path)) {
+    showStatus('Esta textura ya está en el pack', true);
+    return;
+  }
+
+  packTextures.push({ texture: { ...selectedTexture }, file: uploadedFile, dataUrl: uploadedDataUrl });
+  renderSlots();
+  updateDownloadButton();
+  showStatus(`✓ ${selectedTexture.name} añadida al pack`);
+
+  // Reset upload
+  uploadedFile = null;
+  uploadedDataUrl = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('uploadHint').style.display = '';
+  document.getElementById('uploadPreview').style.display = 'none';
+  selectedTexture = null;
+  document.getElementById('selectedPreview').classList.remove('visible');
+  renderTextureList(document.getElementById('texSearch').value);
+  updateAddButton();
+};
+
+// ──────────────────────────────────────────────
+// SLOTS
+// ──────────────────────────────────────────────
+function renderSlots() {
+  const grid = document.getElementById('slotsGrid');
+  const count = packTextures.length;
+
+  document.getElementById('slotsCount').textContent = count + (count === 1 ? ' textura' : ' texturas');
+  document.getElementById('clearBtn').style.display = count ? '' : 'none';
+
+  if (!count) {
+    grid.innerHTML = '<div class="empty-state"><span class="empty-icon">📦</span>Añade texturas para empezar</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  packTextures.forEach((pt, i) => {
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+    const pathParts = pt.texture.path.split('/');
+    const fileName = pathParts[pathParts.length - 1];
+    card.innerHTML = `
+      <button class="slot-remove" title="Quitar" onclick="removeSlot(${i})">✕</button>
+      <img class="slot-img" src="${pt.dataUrl}" alt="${pt.texture.name}">
+      <div class="slot-name">${pt.texture.name}</div>
+      <div class="slot-path">${fileName}.png</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // Update file preview in download panel
+  updateDlPreview();
+}
+
+function removeSlot(i) {
+  packTextures.splice(i, 1);
+  renderSlots();
+  updateDownloadButton();
+}
+
+function clearAll() {
+  if (!packTextures.length) return;
+  packTextures = [];
+  renderSlots();
+  updateDownloadButton();
+  showStatus('Pack limpiado');
+}
+
+function updateDlPreview() {
+  const name = document.getElementById('packName').value || 'Mi Texture Pack';
+  document.getElementById('dlPackName').textContent = name;
+  const fileList = document.getElementById('dlFileList');
+  if (!packTextures.length) {
+    fileList.textContent = '(sin texturas aún)';
+    fileList.style.color = 'var(--text-dim)';
+    return;
+  }
+  fileList.innerHTML = packTextures.map(pt => {
+    const parts = pt.texture.path.split('/');
+    const folder = parts.slice(1, -1).join('/');
+    const file = parts[parts.length - 1];
+    return `📁 ${folder}/<br>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--ore-diamond)">🖼 ${file}.png</span>`;
+  }).join('<br>');
+  fileList.style.color = '';
+}
+
+// ──────────────────────────────────────────────
+// DOWNLOAD
+// ──────────────────────────────────────────────
+function updateDownloadButton() {
+  document.getElementById('downloadBtn').disabled = packTextures.length === 0;
+  updateDlPreview();
+}
+
+function generateUUID() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+async function dataUrlToUint8Array(dataUrl) {
+  const res = await fetch(dataUrl);
+  const buf = await res.arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+async function compressImageToPng(dataUrl, maxSize = 256) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        const ratio = Math.min(maxSize / w, maxSize / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.readAsArrayBuffer(blob);
+      }, 'image/png');
+    };
+    img.src = dataUrl;
+  });
+}
+
+async function generatePack() {
+  const btn = document.getElementById('downloadBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ GENERANDO...';
+
+  try {
+    const packName = document.getElementById('packName').value || 'Mi Texture Pack';
+    const packDesc = document.getElementById('packDesc').value || 'Custom Texture Pack';
+    const versionStr = document.getElementById('packVersion').value;
+    const [vMaj, vMin, vPatch] = versionStr.split('.').map(Number);
+
+    const zip = new JSZip();
+
+    // manifest.json
+    const manifest = {
+      format_version: 2,
+      header: {
+        description: packDesc,
+        name: packName,
+        uuid: generateUUID(),
+        version: [1, 0, 0],
+        min_engine_version: [vMaj, vMin, vPatch]
+      },
+      modules: [{
+        description: packDesc,
+        type: "resources",
+        uuid: generateUUID(),
+        version: [1, 0, 0]
+      }]
+    };
+    zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+
+    // pack_icon.png
+    const thumbImg = document.getElementById('thumbImg');
+    if (thumbImg.src && thumbImg.style.display !== 'none') {
+      const iconData = await compressImageToPng(thumbImg.src, 128);
+      zip.file('pack_icon.png', iconData);
+    } else {
+      // Generate a default pack icon
+      const defaultIcon = await generateDefaultIcon(packName);
+      zip.file('pack_icon.png', defaultIcon);
+    }
+
+    // Textures
+    for (const pt of packTextures) {
+      const imgData = await compressImageToPng(pt.dataUrl, 512);
+      zip.file(pt.texture.path + '.png', imgData);
+    }
+
+    // Generate blob
+    const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const safeName = packName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = safeName + '.mcpack';
+    a.click();
+    URL.revokeObjectURL(url);
+    showStatus('✓ .mcpack descargado exitosamente!');
+  } catch (err) {
+    console.error(err);
+    showStatus('Error al generar el pack: ' + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⬇ GENERAR Y DESCARGAR .MCPACK';
+    updateDownloadButton();
+  }
+}
+
+async function generateDefaultIcon(name) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, 128, 128);
+  grad.addColorStop(0, '#1a1a1a');
+  grad.addColorStop(1, '#0a0a0a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+
+  // Pixel grid
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  for (let x = 0; x < 128; x += 16) ctx.fillRect(x, 0, 1, 128);
+  for (let y = 0; y < 128; y += 16) ctx.fillRect(0, y, 128, 1);
+
+  // Grass block pixels
+  const blockSize = 10;
+  const startX = 24, startY = 34;
+  const grassColors = ['#5D8A3C','#7CB84A','#5D8A3C','#8B6340','#7CB84A','#5D8A3C','#8B6340','#5D8A3C','#8B6340','#8B6340','#5D8A3C','#8B6340','#8B6340','#8B6340','#8B6340','#8B6340'];
+  const cols = 4;
+  grassColors.forEach((c, i) => {
+    ctx.fillStyle = c;
+    ctx.fillRect(startX + (i % cols) * blockSize, startY + Math.floor(i / cols) * blockSize, blockSize - 1, blockSize - 1);
+  });
+
+  // Text
+  ctx.fillStyle = '#7CB84A';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  const shortName = name.length > 12 ? name.substring(0, 12) + '…' : name;
+  ctx.fillText(shortName, 64, 100);
+
+  return new Promise(res => {
+    canvas.toBlob(blob => {
+      const reader = new FileReader();
+      reader.onload = e => res(e.target.result);
+      reader.readAsArrayBuffer(blob);
+    }, 'image/png');
+  });
+}
+
+// ──────────────────────────────────────────────
+// STATUS TOAST
+// ──────────────────────────────────────────────
+let statusTimeout;
+function showStatus(msg, isError = false) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status show' + (isError ? ' error' : '');
+  clearTimeout(statusTimeout);
+  statusTimeout = setTimeout(() => el.className = 'status', 3000);
+}
+
+// ──────────────────────────────────────────────
+// PACK NAME CHANGE → UPDATE PREVIEW
+// ──────────────────────────────────────────────
+document.getElementById('packName').addEventListener('input', updateDlPreview);
+
+// ──────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────
+initIcons();
+initParticles();
+initCategoryTabs();
+renderTextureList();
+setupUpload();
+updateDlPreview();
+</script>
+</body>
+</html>
