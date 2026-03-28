@@ -603,6 +603,46 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: #0a0a0a; }
   ::-webkit-scrollbar-thumb { background: var(--stone-light); border-radius: 3px; }
+
+  .ui-badge {
+    font-family: 'VT323', monospace;
+    font-size: 11px;
+    background: rgba(93,238,245,0.12);
+    border: 1px solid var(--ore-diamond);
+    color: var(--ore-diamond);
+    border-radius: 2px;
+    padding: 1px 5px;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+  }
+  .ui-hint {
+    background: rgba(93,238,245,0.06);
+    border: 1px solid rgba(93,238,245,0.2);
+    border-radius: 3px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    color: var(--ore-diamond);
+    line-height: 1.4;
+    display: none;
+  }
+  .ui-hint.visible { display: block; }
+  .ui-hint strong { color: #fff; }
+  .cat-group-label {
+    width: 100%;
+    font-family: 'VT323', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 4px 2px 2px;
+    letter-spacing: 1px;
+    opacity: 0.6;
+    pointer-events: none;
+    display: block;
+    text-transform: uppercase;
+  }
+  .texture-item.ui-item.selected { border-left-color: var(--ore-diamond) !important; color: var(--ore-diamond); background: rgba(93,238,245,0.1); }
+  .texture-item.ui-item:hover { background: rgba(93,238,245,0.07); }
 </style>
 </head>
 <body>
@@ -672,6 +712,8 @@
         </div>
 
         <div class="texture-list" id="textureList"></div>
+
+        <div class="ui-hint" id="uiHint">💡 <strong>Tip UI:</strong> <span id="uiHintText"></span></div>
 
         <div class="selected-preview" id="selectedPreview">
           <div class="preview-box" id="previewEmoji"></div>
@@ -932,6 +974,232 @@ const TEXTURES = {
     { name: "Totem of Undying", path: "textures/items/totem", emoji: "🗿" },
     { name: "Experiencia (botella)", path: "textures/items/exp_bottle", emoji: "⚗" },
   ],
+
+  // ── UI / INTERFAZ ──────────────────────────────
+  "❤ HUD": [
+    { name: "Hotbar (barra de acceso rápido)", path: "textures/ui/hotbar", emoji: "🟫", ui: true,
+      hint: "Fondo de la barra inferior. Imagen atlas 182×22 px." },
+    { name: "Selección de Hotbar", path: "textures/ui/hotbar_selection", emoji: "🔲", ui: true,
+      hint: "Marco del slot seleccionado. 24×24 px." },
+    { name: "Corazón (lleno)", path: "textures/ui/heart", emoji: "❤", ui: true,
+      hint: "Ícono de vida completa. 9×9 px." },
+    { name: "Corazón (vacío)", path: "textures/ui/heart_bg", emoji: "🖤", ui: true,
+      hint: "Fondo de corazón vacío. 9×9 px." },
+    { name: "Medio corazón", path: "textures/ui/heart_half", emoji: "💔", ui: true,
+      hint: "Medio corazón. 9×9 px." },
+    { name: "Corazón con Absorción (lleno)", path: "textures/ui/heart_absorbing", emoji: "💛", ui: true,
+      hint: "Corazón de absorción completo. 9×9 px." },
+    { name: "Corazón con Absorción (medio)", path: "textures/ui/heart_absorbing_half", emoji: "💛", ui: true,
+      hint: "Medio corazón de absorción. 9×9 px." },
+    { name: "Corazón Endurecido (lleno)", path: "textures/ui/heart_hardened", emoji: "🩸", ui: true,
+      hint: "Corazón con efecto. 9×9 px." },
+    { name: "Corazón Endurecido (medio)", path: "textures/ui/heart_hardened_half", emoji: "🩸", ui: true,
+      hint: "Medio corazón con efecto. 9×9 px." },
+    { name: "Hambre (llena)", path: "textures/ui/food_full_hunger", emoji: "🍗", ui: true,
+      hint: "Ícono de hamburguesa llena. 9×9 px." },
+    { name: "Hambre (vacía)", path: "textures/ui/food_empty_hunger", emoji: "🍖", ui: true,
+      hint: "Fondo de hambre vacío. 9×9 px." },
+    { name: "Hambre (media)", path: "textures/ui/food_half_hunger", emoji: "🍖", ui: true,
+      hint: "Media barra de hambre. 9×9 px." },
+    { name: "Armadura (llena)", path: "textures/ui/armor_full", emoji: "🛡", ui: true,
+      hint: "Ícono de armadura completa. 9×9 px." },
+    { name: "Armadura (vacía)", path: "textures/ui/armor_empty", emoji: "🛡", ui: true,
+      hint: "Fondo de armadura vacía. 9×9 px." },
+    { name: "Armadura (media)", path: "textures/ui/armor_half", emoji: "🛡", ui: true,
+      hint: "Media armadura. 9×9 px." },
+    { name: "Oxígeno (burbuja)", path: "textures/ui/bubble", emoji: "🫧", ui: true,
+      hint: "Burbuja de oxígeno bajo el agua. 9×9 px." },
+    { name: "Oxígeno (vacío)", path: "textures/ui/bubble_pop", emoji: "💨", ui: true,
+      hint: "Burbuja reventada. 9×9 px." },
+    { name: "Barra de Experiencia (fondo)", path: "textures/ui/XP_bar_left_bp", emoji: "🟢", ui: true,
+      hint: "Fondo de barra XP izquierda. 91×5 px." },
+    { name: "Barra de Experiencia (relleno)", path: "textures/ui/XP_bar_left_full", emoji: "🟩", ui: true,
+      hint: "Relleno verde de barra XP. 91×5 px." },
+    { name: "Marco de Barra XP (arriba)", path: "textures/ui/XP_bar_frame_top", emoji: "📊", ui: true,
+      hint: "Marco superior barra de experiencia." },
+    { name: "Crosshair (mira)", path: "textures/ui/crosshair", emoji: "➕", ui: true,
+      hint: "Cruz de apuntado central. 15×15 px." },
+    { name: "Mano del jugador (derecha)", path: "textures/ui/hud_mob_effects_bg", emoji: "🖐", ui: true,
+      hint: "Fondo de efectos de mob en HUD." },
+    { name: "Efecto de Mob (fondo)", path: "textures/ui/mob_effect_background", emoji: "💊", ui: true,
+      hint: "Fondo del ícono de efecto de pociones. 24×24 px." },
+    { name: "Sprint (barra boost)", path: "textures/ui/horse_jumping", emoji: "🐎", ui: true,
+      hint: "Barra de salto de caballo. Usada también para sprint." },
+    { name: "Corazones de Caballo (llenos)", path: "textures/ui/horse_heart", emoji: "🐴", ui: true,
+      hint: "Vida de caballo. 9×9 px." },
+    { name: "Corazones de Caballo (vacíos)", path: "textures/ui/horse_heart_bg", emoji: "🐴", ui: true,
+      hint: "Fondo vida de caballo. 9×9 px." },
+    { name: "Íconos de la Cámara", path: "textures/ui/camera_icon", emoji: "📷", ui: true,
+      hint: "Ícono de cámara en el HUD." },
+  ],
+
+  "🎒 Inventario": [
+    { name: "Fondo Inventario (slot)", path: "textures/ui/cell_image", emoji: "⬜", ui: true,
+      hint: "Cada celda/slot del inventario. 18×18 px." },
+    { name: "Fondo Inventario General", path: "textures/ui/inventory_icon", emoji: "🎒", ui: true,
+      hint: "Ícono del botón de inventario." },
+    { name: "Fondo de Pantalla (oscuro)", path: "textures/ui/dialog_background_opaque", emoji: "⬛", ui: true,
+      hint: "Fondo oscuro de menús. Recomendado 256×256 px." },
+    { name: "Fondo de Pantalla (semitransparente)", path: "textures/ui/dialog_background", emoji: "🟫", ui: true,
+      hint: "Fondo semitransparente de ventanas. 256×256 px." },
+    { name: "Tabla de Crafteo (fondo)", path: "textures/ui/crafting_table_bg", emoji: "🔨", ui: true,
+      hint: "Pantalla de la mesa de trabajo." },
+    { name: "Flecha de Crafteo", path: "textures/ui/arrow_right", emoji: "➡", ui: true,
+      hint: "Flecha de resultado en crafteo. 22×15 px." },
+    { name: "Flecha de Crafteo (progreso)", path: "textures/ui/arrow_right_full", emoji: "➡", ui: true,
+      hint: "Flecha de crafteo activa/progresando." },
+    { name: "Ranura de Resultado", path: "textures/ui/recipe_book", emoji: "📖", ui: true,
+      hint: "Ícono del libro de recetas." },
+    { name: "Quema del Horno", path: "textures/ui/fire", emoji: "🔥", ui: true,
+      hint: "Llama del horno activo. 14×14 px." },
+    { name: "Quema Progreso", path: "textures/ui/fire_full", emoji: "🔥", ui: true,
+      hint: "Llama del horno (con progreso). 14×14 px." },
+    { name: "Progreso de Fundición", path: "textures/ui/furnace_progress_arrow", emoji: "➡", ui: true,
+      hint: "Flecha de progreso del horno." },
+    { name: "Ranura de Brujería (fondo)", path: "textures/ui/brewing_stand", emoji: "⚗", ui: true,
+      hint: "Fondo del soporte de pociones." },
+    { name: "Slot de Encantamiento", path: "textures/ui/enchanting_table_bg", emoji: "✨", ui: true,
+      hint: "Pantalla de mesa de encantamiento." },
+    { name: "Tab de Inventario Seleccionado", path: "textures/ui/tab_inventory_selected", emoji: "🗂", ui: true,
+      hint: "Pestaña activa en el inventario." },
+    { name: "Tab de Inventario Normal", path: "textures/ui/tab_inventory", emoji: "🗂", ui: true,
+      hint: "Pestaña inactiva en el inventario." },
+    { name: "Botón de Ordenar", path: "textures/ui/sortby_toggle", emoji: "🔃", ui: true,
+      hint: "Botón de ordenar inventario." },
+    { name: "Slot de Casco", path: "textures/ui/armour_head", emoji: "⛑", ui: true,
+      hint: "Ranura de casco en inventario. 16×16 px." },
+    { name: "Slot de Peto", path: "textures/ui/armour_chest", emoji: "🦺", ui: true,
+      hint: "Ranura de peto en inventario. 16×16 px." },
+    { name: "Slot de Pantalones", path: "textures/ui/armour_legs", emoji: "👖", ui: true,
+      hint: "Ranura de pantalones en inventario. 16×16 px." },
+    { name: "Slot de Botas", path: "textures/ui/armour_feet", emoji: "👢", ui: true,
+      hint: "Ranura de botas en inventario. 16×16 px." },
+    { name: "Slot de Escudo", path: "textures/ui/icon_off_hand", emoji: "🛡", ui: true,
+      hint: "Ranura de mano secundaria." },
+  ],
+
+  "📦 Contenedores": [
+    { name: "Cofre (interfaz)", path: "textures/ui/container_chest", emoji: "📦", ui: true,
+      hint: "Pantalla de cofre abierto." },
+    { name: "Cofre Grande (interfaz)", path: "textures/ui/container_chest_double", emoji: "📦", ui: true,
+      hint: "Pantalla de cofre doble." },
+    { name: "Trampa-Cofre (interfaz)", path: "textures/ui/container_chest_trapped", emoji: "⚠", ui: true,
+      hint: "Pantalla de cofre trampa." },
+    { name: "Barril (interfaz)", path: "textures/ui/container_barrel", emoji: "🪣", ui: true,
+      hint: "Pantalla del barril." },
+    { name: "Dispensador (interfaz)", path: "textures/ui/container_dispenser", emoji: "🎯", ui: true,
+      hint: "Interfaz de dispensador/lanzador." },
+    { name: "Tolva (interfaz)", path: "textures/ui/container_hopper", emoji: "⬇", ui: true,
+      hint: "Interfaz de la tolva." },
+    { name: "Caja de Ender", path: "textures/ui/container_ender_chest", emoji: "🟣", ui: true,
+      hint: "Interfaz de caja de ender." },
+    { name: "Yunta (interfaz)", path: "textures/ui/container_horse", emoji: "🐴", ui: true,
+      hint: "Inventario del caballo." },
+    { name: "Yunque (interfaz)", path: "textures/ui/anvil_icon_top", emoji: "⚒", ui: true,
+      hint: "Pantalla del yunque." },
+    { name: "Grindstone (interfaz)", path: "textures/ui/grindstone_icon_top", emoji: "⚙", ui: true,
+      hint: "Interfaz de la piedra de afilar." },
+    { name: "Stonecutter (interfaz)", path: "textures/ui/stonecutter_icon", emoji: "🪨", ui: true,
+      hint: "Interfaz del cortador de piedra." },
+    { name: "Loom (interfaz)", path: "textures/ui/loom_pattern_empty", emoji: "🧵", ui: true,
+      hint: "Interfaz del telar." },
+    { name: "Cartography Table", path: "textures/ui/cartography_icon_bg", emoji: "🗺", ui: true,
+      hint: "Mesa cartográfica." },
+    { name: "Smithing Table", path: "textures/ui/smithing_table_icon_empty", emoji: "🔧", ui: true,
+      hint: "Mesa de herrería." },
+    { name: "Colmena (interfaz)", path: "textures/ui/icon_bee_empty", emoji: "🐝", ui: true,
+      hint: "Indicadores de abejas en colmena." },
+  ],
+
+  "🎮 Menús": [
+    { name: "Botón (normal)", path: "textures/ui/button_borderless_dark", emoji: "🔲", ui: true,
+      hint: "Botón oscuro sin borde. Usado en menús." },
+    { name: "Botón (hover)", path: "textures/ui/button_borderless_light", emoji: "🔳", ui: true,
+      hint: "Botón claro al pasar el cursor." },
+    { name: "Botón (desactivado)", path: "textures/ui/button_borderless_hardcoded_dark", emoji: "⬛", ui: true,
+      hint: "Botón desactivado/oscuro." },
+    { name: "Botón con Borde (normal)", path: "textures/ui/button", emoji: "🔘", ui: true,
+      hint: "Botón clásico con borde." },
+    { name: "Botón con Borde (hover)", path: "textures/ui/button_hover", emoji: "🔘", ui: true,
+      hint: "Botón con borde al pasar cursor." },
+    { name: "Barra de Progreso (fondo)", path: "textures/ui/loading_bar_bg", emoji: "📊", ui: true,
+      hint: "Fondo de barra de carga." },
+    { name: "Barra de Progreso (relleno)", path: "textures/ui/loading_bar", emoji: "📊", ui: true,
+      hint: "Relleno de barra de carga." },
+    { name: "Fondo de Mundos (panorama)", path: "textures/ui/world_icon", emoji: "🌍", ui: true,
+      hint: "Ícono de mundo en la lista." },
+    { name: "Fondo de Logro", path: "textures/ui/achievement_bg", emoji: "🏆", ui: true,
+      hint: "Fondo del popup de logros." },
+    { name: "Popup de Toast (notificación)", path: "textures/ui/toast_bg", emoji: "🔔", ui: true,
+      hint: "Fondo de notificaciones de toast." },
+    { name: "Flecha Izquierda (nav)", path: "textures/ui/arrow_left_button", emoji: "⬅", ui: true,
+      hint: "Botón de navegación izquierda." },
+    { name: "Flecha Derecha (nav)", path: "textures/ui/arrow_right_button", emoji: "➡", ui: true,
+      hint: "Botón de navegación derecha." },
+    { name: "Ícono de Chat", path: "textures/ui/chat_icon", emoji: "💬", ui: true,
+      hint: "Ícono del chat en pantalla." },
+    { name: "Ícono de Pausa", path: "textures/ui/pause_screen", emoji: "⏸", ui: true,
+      hint: "Ícono/botón de pantalla de pausa." },
+    { name: "Ícono de Configuración", path: "textures/ui/settings_icon", emoji: "⚙", ui: true,
+      hint: "Ícono de engranaje de configuración." },
+    { name: "Pantalla de Carga (logo)", path: "textures/ui/mojang_brand", emoji: "🟥", ui: true,
+      hint: "Logo de Mojang en pantalla de carga." },
+    { name: "Ícono de Multijugador", path: "textures/ui/multiplayer_glyph_color_2x", emoji: "👥", ui: true,
+      hint: "Ícono de multijugador." },
+    { name: "Scroll Bar (fondo)", path: "textures/ui/scrollbar_bg", emoji: "📜", ui: true,
+      hint: "Fondo de la barra de desplazamiento." },
+    { name: "Scroll Bar (thumb)", path: "textures/ui/scrolling_thumb", emoji: "📜", ui: true,
+      hint: "Botón de la barra de scroll." },
+    { name: "Ícono de Mapa (marcador)", path: "textures/map/map_player", emoji: "🗺", ui: true,
+      hint: "Marcador de posición del jugador en mapa." },
+    { name: "Marcador de Mapa (marco)", path: "textures/map/map_player_frame", emoji: "🗺", ui: true,
+      hint: "Marco del marcador de mapa." },
+    { name: "Cursor del Mapa", path: "textures/map/map_decoration", emoji: "📍", ui: true,
+      hint: "Decoraciones sobre el mapa." },
+    { name: "Ícono de Trofeos/Logros", path: "textures/ui/trophy", emoji: "🏆", ui: true,
+      hint: "Trofeo de logros del jugador." },
+    { name: "Skin (Selección)", path: "textures/ui/persona", emoji: "🧍", ui: true,
+      hint: "Ícono del sistema de personaje/skin." },
+  ],
+
+  "✨ Efectos & Partículas": [
+    { name: "Partícula genérica", path: "textures/particle/particles", emoji: "✨", ui: true,
+      hint: "Atlas de todas las partículas del juego. Imagen grande que contiene todas las partículas." },
+    { name: "Nieve (partícula)", path: "textures/particle/snowflake", emoji: "❄", ui: true,
+      hint: "Copo de nieve como partícula. 8×8 px." },
+    { name: "Chispa (partícula)", path: "textures/particle/sparkle", emoji: "⭐", ui: true,
+      hint: "Destello de chispa. 8×8 px." },
+    { name: "Llama (partícula)", path: "textures/particle/flame", emoji: "🔥", ui: true,
+      hint: "Partícula de fuego/llama." },
+    { name: "Explosión (anillo)", path: "textures/particle/explosion", emoji: "💥", ui: true,
+      hint: "Anillo de explosión. 16×16 px." },
+    { name: "Explosión (grande)", path: "textures/particle/explode", emoji: "💥", ui: true,
+      hint: "Partícula de explosión grande." },
+    { name: "Splash de Agua", path: "textures/particle/splash", emoji: "💧", ui: true,
+      hint: "Partícula de salpicadura de agua." },
+    { name: "Burbuja (partícula)", path: "textures/particle/bubble", emoji: "🫧", ui: true,
+      hint: "Burbuja bajo el agua como partícula." },
+    { name: "Humo (partícula)", path: "textures/particle/smoke", emoji: "💨", ui: true,
+      hint: "Partícula de humo." },
+    { name: "Encantamiento (brillo)", path: "textures/particle/enchanting_table", emoji: "✨", ui: true,
+      hint: "Partícula de mesa de encantamiento." },
+    { name: "Corazón (partícula)", path: "textures/particle/heart", emoji: "❤", ui: true,
+      hint: "Corazón flotante (animales felices). 8×8 px." },
+    { name: "Enojo (partícula)", path: "textures/particle/angry", emoji: "💢", ui: true,
+      hint: "Signo de enojo sobre mobs. 8×8 px." },
+    { name: "Crítico (daño)", path: "textures/particle/crit", emoji: "⚡", ui: true,
+      hint: "Partícula de golpe crítico." },
+    { name: "Magia (daño)", path: "textures/particle/spell", emoji: "🔮", ui: true,
+      hint: "Partícula de efecto mágico." },
+    { name: "Polvo de Redstone", path: "textures/particle/redstone_dust", emoji: "🔴", ui: true,
+      hint: "Partícula de redstone activo." },
+    { name: "Slime (partícula)", path: "textures/particle/slime", emoji: "🟢", ui: true,
+      hint: "Partícula de slime rebotando." },
+    { name: "Portal (partícula)", path: "textures/particle/portal", emoji: "🌀", ui: true,
+      hint: "Partícula giratoria del portal nether." },
+    { name: "Totem (partícula)", path: "textures/particle/totem", emoji: "🗿", ui: true,
+      hint: "Partícula al activar totem." },
+  ],
 };
 
 // ──────────────────────────────────────────────
@@ -992,10 +1260,36 @@ function initParticles() {
 // ──────────────────────────────────────────────
 function initCategoryTabs() {
   const container = document.getElementById('catTabs');
-  Object.keys(TEXTURES).forEach(cat => {
+  const vanillaCats = ["⚔ Items","🛡 Armadura","🧱 Bloques","🍗 Comida","🌿 Naturaleza","🔴 Redstone","🪄 Especiales"];
+  const uiCats = ["❤ HUD","🎒 Inventario","📦 Contenedores","🎮 Menús","✨ Efectos & Partículas"];
+
+  const vanillaLabel = document.createElement('span');
+  vanillaLabel.className = 'cat-group-label';
+  vanillaLabel.textContent = '── Vanilla ──';
+  container.appendChild(vanillaLabel);
+
+  vanillaCats.forEach(cat => {
+    if (!TEXTURES[cat]) return;
     const btn = document.createElement('button');
     btn.className = 'cat-tab' + (cat === currentCategory ? ' active' : '');
     btn.textContent = cat;
+    btn.onclick = () => selectCategory(cat);
+    container.appendChild(btn);
+  });
+
+  const uiLabel = document.createElement('span');
+  uiLabel.className = 'cat-group-label';
+  uiLabel.style.color = 'var(--ore-diamond)';
+  uiLabel.textContent = '── UI / Interfaz ──';
+  container.appendChild(uiLabel);
+
+  uiCats.forEach(cat => {
+    if (!TEXTURES[cat]) return;
+    const btn = document.createElement('button');
+    btn.className = 'cat-tab' + (cat === currentCategory ? ' active' : '');
+    btn.style.borderColor = 'rgba(93,238,245,0.3)';
+    btn.textContent = cat;
+    btn.dataset.ui = '1';
     btn.onclick = () => selectCategory(cat);
     container.appendChild(btn);
   });
@@ -1006,6 +1300,7 @@ function selectCategory(cat) {
   document.querySelectorAll('.cat-tab').forEach(b => b.classList.toggle('active', b.textContent === cat));
   selectedTexture = null;
   document.getElementById('selectedPreview').classList.remove('visible');
+  document.getElementById('uiHint').classList.remove('visible');
   updateAddButton();
   renderTextureList();
 }
@@ -1025,10 +1320,11 @@ function renderTextureList(filter = '') {
   }
   items.forEach(t => {
     const el = document.createElement('div');
-    el.className = 'texture-item' + (selectedTexture && selectedTexture.path === t.path ? ' selected' : '');
+    el.className = 'texture-item' + (selectedTexture && selectedTexture.path === t.path ? ' selected' : '') + (t.ui ? ' ui-item' : '');
+    const badge = t.ui ? '<span class="ui-badge">UI</span>' : '';
     el.innerHTML = `
       <span>${t.emoji} ${t.name}</span>
-      <span class="texture-path">${t.path.split('/').slice(-1)[0]}</span>
+      <span style="display:flex;align-items:center;gap:5px">${badge}<span class="texture-path">${t.path.split('/').slice(-1)[0]}</span></span>
     `;
     el.onclick = () => selectTexture(t);
     list.appendChild(el);
@@ -1043,6 +1339,15 @@ function selectTexture(t) {
   document.getElementById('previewEmoji').textContent = t.emoji;
   document.getElementById('previewName').textContent = t.name;
   document.getElementById('previewPath').textContent = t.path + '.png';
+
+  const hintBox = document.getElementById('uiHint');
+  if (t.hint) {
+    document.getElementById('uiHintText').textContent = t.hint;
+    hintBox.classList.add('visible');
+  } else {
+    hintBox.classList.remove('visible');
+  }
+
   updateAddButton();
 }
 
